@@ -339,4 +339,3 @@ For other researchers, `run_ddpo.py` is the recommended entry point.
    - benign test: `prompt`
 4. If you want MMLU-style evaluation on a different benchmark, convert it to the same JSON structure used by `MMLU_data.json`.
 5. Update output file names in the testing notebooks if you want dataset-specific result files.
->>>>>>> eeb32c83b5fb3e91de6384c7d8fe119c3ba8c5df
