@@ -2,7 +2,7 @@
 
 Official repository for the AAAI 2026 paper **Dynamic Deep Prompt Optimization for Defending Against Jailbreak Attacks on LLMs**.
 
-The repository is organized by model. Each model directory contains notebooks for DDPO training and evaluation, and the `Data/` directory contains the shared input files.
+The repository is organized by model. Each model directory contains notebooks for DDPO training and evaluation, and the `Data/` directory contains the input files.
 
 ## Citation
 
@@ -54,12 +54,8 @@ Example install:
 pip install torch transformers bitsandbytes pandas numpy scikit-learn tqdm jupyter
 ```
 
-Notes:
-- The notebooks load the model with `load_in_8bit=True` and `torch_dtype=torch.bfloat16`.
-- A CUDA GPU setup is recommended.
-- File paths are relative by default. If your local layout is different, update the paths inside the notebooks.
-
 ## Data format
+File paths are relative by default. If your local layout is different, update the paths inside the notebooks.
 
 ### Training data
 
@@ -166,10 +162,3 @@ To use a new jailbreak or benign dataset:
    - benign test: `prompt`
 4. If you want MMLU-style evaluation on a different benchmark, convert it to the same JSON structure used by `MMLU_data.json`.
 5. Update output file names in the testing notebooks if you want dataset-specific result files.
-
-## Important code details
-
-- The optimization notebook saves the trained generator to `embed_generator.pt`.
-- The testing notebooks load that checkpoint with `generator_path`.
-- The layer used during testing is not inferred automatically there; you must copy the selected layer from the optimization run.
-- The notebooks are written around direct access to intermediate hidden states, so they work best with models whose Hugging Face implementation exposes layer modules in a Llama-style layout.
