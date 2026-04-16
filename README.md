@@ -1,4 +1,4 @@
-# ddpo
+# DDPO
 
 Official repository for the AAAI 2026 paper **"Dynamic Deep Prompt Optimization for Defending Against Jailbreak Attacks on LLMs"**.
 
