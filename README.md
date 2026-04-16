@@ -1,303 +1,175 @@
 # ddpo
 
-Official repository for the AAAI 2026 paper **"Dynamic Deep Prompt Optimization for Defending Against Jailbreak Attacks on LLMs"**.
+Official repository for the AAAI 2026 paper **Dynamic Deep Prompt Optimization for Defending Against Jailbreak Attacks on LLMs**.
 
-This repository contains Jupyter notebooks for reproducing the DDPO experiments reported in the paper, along with the data files used by the notebooks. The code is organized mainly by **target model** and **defense method**.
-
-## Repository layout
-
-```text
-ddpo/
-├── Data/
-│   ├── train_bad.csv
-│   ├── train_clean.csv
-│   ├── test_bad.csv
-│   ├── test_clean.csv
-│   └── MMLU_data.json
-├── Llama3/
-│   ├── DDPO/
-│   ├── DRO/
-│   ├── PAT/
-│   ├── RPO/
-│   ├── No Defense/
-│   └── Ablation Study/
-├── Llama2/
-├── Deepseek/
-├── Vicuna/
-├── Openchat/
-└── Results Summary/
-```
-
-At the root level, the repository contains one folder per model (for example `Llama3`, `Llama2`, `Deepseek`, `Vicuna`, and `Openchat`), plus a shared `Data/` folder and a `Results Summary/` folder.
-
-## What the DDPO notebooks do
-
-For each model, the `DDPO/` folder typically contains three notebooks:
-
-- `DDPO Optimization.ipynb`  
-  Trains the DDPO embedding generator, automatically finds the best insertion layer, and saves the learned weights to `embed_generator.pt`.
-
-- `DDPO Testing.ipynb`  
-  Runs inference on jailbreak and benign evaluation prompts and saves generations to `evaluation_<model>.csv`.
-
-- `DDPO MMLU Testing.ipynb`  
-  Runs MMLU evaluation and saves generations to `evaluation_<model>_MMLU.csv`.
-
-The notebooks load the base LLM with:
-
-- `BitsAndBytesConfig(load_in_8bit=True)`
-- `device_map="auto"`
-- `torch_dtype=torch.bfloat16`
-
-So in practice you should plan to run on a CUDA GPU with `bitsandbytes` available.
-
-## Requirements
-
-A minimal environment should include:
-
-```bash
-pip install torch transformers accelerate bitsandbytes pandas scikit-learn tqdm datasets jupyter ipywidgets
-```
-
-You also need local access to the target chat model weights (for example a local Hugging Face model directory).
-
-## Data setup
-
-The notebooks expect the following files:
-
-- `train_bad.csv`
-- `train_clean.csv`
-- `test_bad.csv`
-- `test_clean.csv`
-- `MMLU_data.json`
-
-By default, the notebooks load these files using plain relative paths such as:
-
-```python
-pd.read_csv("train_bad.csv")
-pd.read_csv("test_bad.csv")
-open("MMLU_data.json")
-```
-
-That means you should either:
-
-1. copy the needed data files into the same working directory as the notebook you are running, or  
-2. update the file paths in the notebook to point to `../../Data/...` or wherever your local copy lives.
-
-## Quick start
-
-### 1) Choose a model folder
-
-Pick the target model you want to reproduce, for example:
-
-```text
-Llama3/DDPO/
-```
-
-### 2) Point the notebook to your local model
-
-Set `model_name` to your local model path, for example:
-
-```python
-model_name = "./models/Meta-Llama-3-8B-Instruct"
-```
-
-### 3) Run `DDPO Optimization.ipynb`
-
-This notebook does three important things:
-
-1. loads the train split (`train_bad.csv` and `train_clean.csv`)
-2. estimates the best separation layer by comparing harmful vs. clean hidden states
-3. trains the `EmbedGenerator` MLP and saves the result as:
-
-```python
-save_path = "embed_generator.pt"
-```
-
-The optimization notebook also lets you choose the insertion mode:
-
-```python
-mode = "sys_prompt"   # or "prefix" / "suffix"
-```
-
-The submitted experiments use the DDPO mechanism implemented in this notebook; for the included model notebooks, the default setting is `sys_prompt`.
-
-### 4) Copy the selected layer into the testing notebooks
-
-After `DDPO Optimization.ipynb` finishes, note the printed value:
-
-```python
-print(f"Best separation layer: {best_separation_layer}")
-```
-
-Then open:
-
-- `DDPO Testing.ipynb`
-- `DDPO MMLU Testing.ipynb`
-
-and set:
-
-```python
-target_layer_to_stop_at = <best layer>
-start_layer_for_forward_from = target_layer_to_stop_at + 1
-```
-
-The testing notebooks do **not** recompute the best layer automatically; they expect this value to be filled in ahead of time. In the provided Llama 3 notebook, this value is already set to `23`.
-
-### 5) Run evaluation notebooks
-
-Running `DDPO Testing.ipynb` writes a CSV like:
-
-```python
-evaluation_llama3.csv
-```
-
-Running `DDPO MMLU Testing.ipynb` writes a CSV like:
-
-```python
-evaluation_llama3_MMLU.csv
-```
-
-The final cells in those notebooks compute quick summary metrics from the saved CSVs.
-
----
-
-## Adding a new model
-
-To use DDPO with a new chat model, you will usually need to update **four** things.
-
-### A. Set the local model path
-
-Update:
-
-```python
-model_name = "./models/<your-model>"
-```
-
-### B. Add the chat template
-
-The notebooks hard-code prompt formatting by checking substrings in `model_name`.  
-If your model is new, add a case in:
-
-- `format_prompt(...)` in `DDPO Optimization.ipynb`
-- `embed_format(...)` in `DDPO Optimization.ipynb`
-- `embed_format(...)` in `DDPO Testing.ipynb`
-- `embed_format(...)` in `DDPO MMLU Testing.ipynb`
-
-If you do not add it, the notebook will print:
-
-- `"A chat template for this model is not defined. Add the chat template in the format_prompt function."`
-- `"A chat template for this model is not defined. Add the chat template in the embed_prompt function."`
-
-The existing notebooks already include templates for:
-
-- Vicuna
-- Llama 3
-- Llama 2 / Mistral-style `[INST]` format
-- DeepSeek
-- OpenChat
-
-When adding a new model, make sure the template is consistent in **both** the plain text prompt builder and the embedding-format builder.
-
-### C. Verify the model internals match the notebook assumptions
-
-The DDPO notebooks assume the model exposes internals in this style:
-
-- `model.model.layers`
-- `model.model.norm`
-- `model.model.embed_tokens`
-- `model.lm_head`
-
-This matches the included models, but some Hugging Face models use slightly different module names.  
-If your model differs, you will need to adapt:
-
-- `forward_to(...)`
-- `forward_from(...)`
-- `get_embeds(...)`
-- any direct call to `model.model.embed_tokens(...)`
-
-### D. Re-run layer selection for the new model
-
-Do not reuse the layer chosen for a different model.  
-Run `DDPO Optimization.ipynb` for the new model and use the printed `best_separation_layer`.
-
----
-
-## Notes on how the implementation works
-
-A few implementation details matter when reproducing results:
-
-- The base LLM is frozen (`param.requires_grad = False` for all model parameters).
-- Only the small `EmbedGenerator` MLP is trained.
-- The current implementation uses `num_prompt_tokens = 1` by default.
-- The placeholder prompt embedding is inserted as a zero vector and then replaced by the generated embedding after the partial forward pass.
-- The tokenizer is set to left padding:
-  ```python
-  tokenizer.pad_token = tokenizer.eos_token
-  tokenizer.padding_side = "left"
-  ```
-
-These details are important because the manual `forward_to(...)` / `forward_from(...)` logic depends on padding and token positions being handled consistently.
-
-## Common gotchas
-
-### File not found errors
-The most common issue is that the notebook expects `train_bad.csv`, `test_bad.csv`, etc. in the current working directory.  
-Fix by copying files locally or updating the paths.
-
-### New model fails immediately
-Most likely the chat template is missing. Add a new case in `format_prompt(...)` and `embed_format(...)`.
-
-### New model loads but generation breaks
-Check whether your model uses different internal attribute names than:
-
-```python
-model.model.layers
-model.model.norm
-model.model.embed_tokens
-model.lm_head
-```
-
-### Out-of-memory issues
-Reduce:
-
-- `batch_size`
-- `max_new_tokens`
-
-You can also switch to a smaller model or a GPU with more memory.
-
-### Wrong evaluation layer
-Make sure `target_layer_to_stop_at` in the testing notebooks matches the layer found during optimization for the same model.
-
----
-
-## Example workflow
-
-For Llama 3, a typical workflow is:
-
-1. set `model_name = "./models/Meta-Llama-3-8B-Instruct"`
-2. make sure the CSV/JSON data files are accessible
-3. run `Llama3/DDPO/DDPO Optimization.ipynb`
-4. keep the saved `embed_generator.pt`
-5. confirm `target_layer_to_stop_at`
-6. run `Llama3/DDPO/DDPO Testing.ipynb`
-7. run `Llama3/DDPO/DDPO MMLU Testing.ipynb`
-
----
+The repository is organized by model. Each model directory contains notebooks for DDPO training and evaluation, and the `Data/` directory contains the shared input files.
 
 ## Citation
 
-If you use this repository, please cite the paper:
+If you use this work, please cite:
 
 ```bibtex
 @inproceedings{obidov2026ddpo,
   title={Dynamic Deep Prompt Optimization for Defending Against Jailbreak Attacks on LLMs},
   author={Obidov, Doniyorkhon and Yu, Honggang and Guo, Xiaolong and Yang, Kaichen},
   booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
-  year={2026}
+  volume={40},
+  number={42},
+  pages={35742--35750},
+  year={2026},
+  doi={10.1609/aaai.v40i42.40887}
 }
 ```
 
-## License
+## Repository layout
 
-MIT
+- `Data/`
+  - `train_bad.csv`
+  - `train_clean.csv`
+  - `test_bad.csv`
+  - `test_clean.csv`
+  - `MMLU_data.json`
+- `<Model>/DDPO/`
+  - `DDPO Optimization.ipynb`
+  - `DDPO Testing.ipynb`
+  - `DDPO MMLU Testing.ipynb`
+
+## Requirements
+
+The notebooks import:
+
+- Python 3.9+
+- `torch`
+- `transformers`
+- `bitsandbytes`
+- `pandas`
+- `numpy`
+- `scikit-learn`
+- `tqdm`
+- Jupyter Notebook or JupyterLab
+
+Example install:
+
+```bash
+pip install torch transformers bitsandbytes pandas numpy scikit-learn tqdm jupyter
+```
+
+Notes:
+- The notebooks load the model with `load_in_8bit=True` and `torch_dtype=torch.bfloat16`.
+- A CUDA GPU setup is recommended.
+- File paths are relative by default. If your local layout is different, update the paths inside the notebooks.
+
+## Data format
+
+### Training data
+
+`train_bad.csv` and `train_clean.csv` should contain at least:
+
+```text
+prompt
+```
+
+The provided files also include an `attack` column, but the optimization notebook reads only the `prompt` column for training.
+
+### Test data
+
+`test_bad.csv` should contain:
+
+```text
+prompt,attack
+```
+
+`test_clean.csv` should contain at least:
+
+```text
+prompt
+```
+
+If `test_clean.csv` also includes `attack`, it will be ignored by the testing notebook.
+
+### MMLU data
+
+`MMLU_data.json` is read as a list where each item has this structure:
+
+```python
+[
+  updated_input,
+  question,
+  subject,
+  choices,
+  answer
+]
+```
+
+## How to run DDPO
+
+1. Open the notebook for your target model under `<Model>/DDPO/`.
+2. Set `model_name` to your local path or Hugging Face model path.
+3. Make sure the data files are in the notebook working directory, or update the file paths.
+4. Run `DDPO Optimization.ipynb` from top to bottom.
+5. The notebook will:
+   - load the base model,
+   - generate initial outputs for the training prompts,
+   - estimate the best separation layer,
+   - train the embedding generator,
+   - save `embed_generator.pt`.
+6. Copy the printed `best_separation_layer` into:
+   - `target_layer_to_stop_at` in `DDPO Testing.ipynb`
+   - `target_layer_to_stop_at` in `DDPO MMLU Testing.ipynb`
+7. Set `generator_path = "embed_generator.pt"` in the testing notebooks if needed.
+8. Run:
+   - `DDPO Testing.ipynb` to create the jailbreak evaluation CSV
+   - `DDPO MMLU Testing.ipynb` to create the MMLU evaluation CSV
+
+## Outputs
+
+In the Llama 3 DDPO notebooks, the default outputs are:
+
+- `embed_generator.pt`
+- `evaluation_llama3.csv`
+- `evaluation_llama3_MMLU.csv`
+
+For other models, update the output file names if you do not want Llama 3 names in your saved results.
+
+## Running on a new model
+
+To use DDPO with a new model:
+
+1. Set `model_name` in all three notebooks.
+2. Add the model's chat template:
+   - in `format_prompt(...)` in `DDPO Optimization.ipynb`
+   - in `embed_format(...)` in `DDPO Optimization.ipynb`
+   - in `embed_format(...)` in `DDPO Testing.ipynb`
+   - in `embed_format(...)` in `DDPO MMLU Testing.ipynb`
+3. Make sure the model exposes the internals used by the notebooks:
+   - `model.model.embed_tokens`
+   - `model.model.layers`
+   - `model.model.norm`
+   - `model.lm_head`
+4. Check tokenizer setup:
+   - set `tokenizer.pad_token`
+   - keep `tokenizer.padding_side = "left"` unless you intentionally adapt the padding logic
+5. Run the optimization notebook first to discover the new `best_separation_layer`.
+6. Copy that layer index into both testing notebooks before evaluation.
+
+If your model uses a different internal structure, you will need to adapt `forward_to(...)`, `forward_from(...)`, and the embedding lookup code.
+
+## Running on new data
+
+To use a new jailbreak or benign dataset:
+
+1. Replace `train_bad.csv` and `train_clean.csv` with your training prompts.
+2. Replace `test_bad.csv` and `test_clean.csv` with your evaluation prompts.
+3. Keep the required columns:
+   - training: `prompt`
+   - harmful test: `prompt`, `attack`
+   - benign test: `prompt`
+4. If you want MMLU-style evaluation on a different benchmark, convert it to the same JSON structure used by `MMLU_data.json`.
+5. Update output file names in the testing notebooks if you want dataset-specific result files.
+
+## Important code details
+
+- The optimization notebook saves the trained generator to `embed_generator.pt`.
+- The testing notebooks load that checkpoint with `generator_path`.
+- The layer used during testing is not inferred automatically there; you must copy the selected layer from the optimization run.
+- The notebooks are written around direct access to intermediate hidden states, so they work best with models whose Hugging Face implementation exposes layer modules in a Llama-style layout.
