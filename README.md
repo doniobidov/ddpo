@@ -2,9 +2,8 @@
 
 Official repository for the AAAI 2026 paper **Dynamic Deep Prompt Optimization for Defending Against Jailbreak Attacks on LLMs**.
 
-This repository contains the original notebook demos used for the paper and a root-level Python runner for researchers who want to test DDPO on their own models and data.
+This repository contains the notebook demos and a Python runner to test DDPO on custom models and data.
 
-=======
 The repository is organized by model. Each model directory contains notebooks for DDPO training and evaluation, and the `Data/` directory contains the input files.
 
 ## Citation
@@ -24,32 +23,6 @@ If you use this work, please cite:
 }
 ```
 
-## Repository layout
-
-```text
-Data/
-Deepseek/
-Llama2/
-Llama3/
-Openchat/
-Vicuna/
-Results Summary/
-README.md
-```
-
-<<<<<<< HEAD
-Each model directory contains notebook demos. The `Data/` directory contains the example input files used by the notebooks and by the runner.
-
-## Files to add at the repository root
-
-Add these files at the repository root:
-
-```text
-run_ddpo.py
-soft_templates.py
-requirements.txt
-```
-
 ## Install
 
 ```bash
@@ -61,18 +34,16 @@ pip install -r requirements.txt
 This script runs the full DDPO pipeline in one command:
 
 1. load model and data
-2. generate base-model training targets
+2. generate model training targets
 3. select the best separation layer automatically
 4. train DDPO
 5. run jailbreak evaluation
 6. optionally run MMLU evaluation
 7. save outputs
 
-The script prints each stage as it runs, shows progress bars, saves the selected layer automatically, and removes the need to edit multiple notebook cells.
-
 ## Current support scope
 
-The root runner is intentionally aligned with the paper notebooks and currently assumes a **Llama-like Hugging Face causal LM** that exposes:
+The code assumes a **Hugging Face causal LM** that exposes:
 
 ```text
 model.model.embed_tokens
@@ -95,7 +66,7 @@ That means:
 
 - leave `--system_prompt` empty when `--mode sys_prompt`
 - if you want to use a **fixed textual system prompt**, use `--mode prefix` or `--mode suffix`
-- the runner now raises a clear error if you try to pass a non-empty `--system_prompt` together with `--mode sys_prompt`
+- the runner raises an error if you try to pass a non-empty `--system_prompt` together with `--mode sys_prompt`
 
 ## Before running
 
@@ -142,9 +113,9 @@ python run_ddpo.py \
   --system_prompt "You are a helpful assistant. Follow safety policies carefully."
 ```
 
-## Run with custom data paths
+## Run with custom data
 
-If your files are in different locations, run:
+To run with custom data, structure your data similarly to the provided examples and execute:
 
 ```bash
 python run_ddpo.py \
@@ -176,12 +147,7 @@ output_dir/
 └── training_targets_raw.csv
 ```
 
-=======
->>>>>>> eeb32c83b5fb3e91de6384c7d8fe119c3ba8c5df
 ## Data format
-File paths are relative by default. If your local layout is different, update the paths inside the notebooks.
-
-Use the same file structure and columns as the provided example data.
 
 ### `train_bad.csv`
 Harmful prompts used for DDPO training.
@@ -211,7 +177,7 @@ prompt,attack
 ```
 
 - `prompt`: the harmful input
-- `attack`: attack name or category for reporting
+- `attack`: attack name
 
 ### `test_clean.csv`
 Benign evaluation prompts.
@@ -267,22 +233,7 @@ Edit `soft_templates.py`.
 2. Add a rule in `infer_template_family()` if you want auto-detection by model name
 3. Rerun the script
 
-If you do not add the template, the script will stop with a clear error telling you to define the model template in `soft_templates.py`.
-
-## Running on new data
-
-To test DDPO on a new dataset, keep the same file structure and column names.
-
-<<<<<<< HEAD
-Minimum requirements:
-
-- harmful training file: `prompt`
-- benign training file: `prompt`
-- harmful test file: `prompt,attack`
-- benign test file: `prompt`
-- optional MMLU file: same JSON structure as `MMLU_data.json`
-
-You can replace the provided files or point the runner to new ones with the path arguments shown above.
+If you do not add the template, the script will stop with an error.
 
 ## Useful options
 
@@ -300,43 +251,3 @@ You can replace the provided files or point the runner to new ones with the path
 --mmlu_max_new_tokens 64
 --skip_mmlu
 ```
-
-## Notebook demos
-
-The notebooks in each model directory remain in the repository as demos.
-
-Current notebook layout:
-
-```text
-<Model>/DDPO/
-├── DDPO Optimization.ipynb
-├── DDPO Testing.ipynb
-└── DDPO MMLU Testing.ipynb
-```
-
-The notebooks are useful if you want to inspect the original paper workflow step by step.
-
-### If you use the notebooks instead of `run_ddpo.py`
-
-You will need to adjust paths manually inside the notebook cells.
-
-At minimum:
-
-- in `DDPO Optimization.ipynb`, set `model_name`
-- in `DDPO Testing.ipynb`, set `model_name`
-- in `DDPO Testing.ipynb`, set `generator_path`
-- in `DDPO MMLU Testing.ipynb`, set `model_name`
-- in `DDPO MMLU Testing.ipynb`, set `generator_path`
-- make sure the CSV and JSON data files are reachable from the notebook working directory
-- in the testing notebooks, set `target_layer_to_stop_at` to the layer selected during optimization
-
-For other researchers, `run_ddpo.py` is the recommended entry point.
-=======
-1. Replace `train_bad.csv` and `train_clean.csv` with your training prompts.
-2. Replace `test_bad.csv` and `test_clean.csv` with your evaluation prompts.
-3. Keep the required columns:
-   - training: `prompt`
-   - harmful test: `prompt`, `attack`
-   - benign test: `prompt`
-4. If you want MMLU-style evaluation on a different benchmark, convert it to the same JSON structure used by `MMLU_data.json`.
-5. Update output file names in the testing notebooks if you want dataset-specific result files.
