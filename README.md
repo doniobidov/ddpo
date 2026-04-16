@@ -2,11 +2,9 @@
 
 Official repository for the AAAI 2026 paper **Dynamic Deep Prompt Optimization for Defending Against Jailbreak Attacks on LLMs**.
 
-<<<<<<< HEAD
 This repository contains the original notebook demos used for the paper and a root-level Python runner for researchers who want to test DDPO on their own models and data.
 =======
 The repository is organized by model. Each model directory contains notebooks for DDPO training and evaluation, and the `Data/` directory contains the input files.
->>>>>>> eeb32c83b5fb3e91de6384c7d8fe119c3ba8c5df
 
 ## Citation
 
