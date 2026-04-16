@@ -2,7 +2,11 @@
 
 Official repository for the AAAI 2026 paper **Dynamic Deep Prompt Optimization for Defending Against Jailbreak Attacks on LLMs**.
 
+<<<<<<< HEAD
 This repository contains the original notebook demos used for the paper and a root-level Python runner for researchers who want to test DDPO on their own models and data.
+=======
+The repository is organized by model. Each model directory contains notebooks for DDPO training and evaluation, and the `Data/` directory contains the input files.
+>>>>>>> eeb32c83b5fb3e91de6384c7d8fe119c3ba8c5df
 
 ## Citation
 
@@ -34,6 +38,7 @@ Results Summary/
 README.md
 ```
 
+<<<<<<< HEAD
 Each model directory contains notebook demos. The `Data/` directory contains the example input files used by the notebooks and by the runner.
 
 ## Files to add at the repository root
@@ -172,7 +177,10 @@ output_dir/
 └── training_targets_raw.csv
 ```
 
+=======
+>>>>>>> eeb32c83b5fb3e91de6384c7d8fe119c3ba8c5df
 ## Data format
+File paths are relative by default. If your local layout is different, update the paths inside the notebooks.
 
 Use the same file structure and columns as the provided example data.
 
@@ -266,6 +274,7 @@ If you do not add the template, the script will stop with a clear error telling 
 
 To test DDPO on a new dataset, keep the same file structure and column names.
 
+<<<<<<< HEAD
 Minimum requirements:
 
 - harmful training file: `prompt`
@@ -323,3 +332,13 @@ At minimum:
 - in the testing notebooks, set `target_layer_to_stop_at` to the layer selected during optimization
 
 For other researchers, `run_ddpo.py` is the recommended entry point.
+=======
+1. Replace `train_bad.csv` and `train_clean.csv` with your training prompts.
+2. Replace `test_bad.csv` and `test_clean.csv` with your evaluation prompts.
+3. Keep the required columns:
+   - training: `prompt`
+   - harmful test: `prompt`, `attack`
+   - benign test: `prompt`
+4. If you want MMLU-style evaluation on a different benchmark, convert it to the same JSON structure used by `MMLU_data.json`.
+5. Update output file names in the testing notebooks if you want dataset-specific result files.
+>>>>>>> eeb32c83b5fb3e91de6384c7d8fe119c3ba8c5df
