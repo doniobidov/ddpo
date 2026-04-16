@@ -1,0 +1,15 @@
+# Core runtime
+torch>=2.1
+transformers>=4.43
+accelerate>=0.30
+bitsandbytes>=0.43
+
+# Data / utilities
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.3
+tqdm>=4.66
+sentencepiece>=0.1.99
+
+# Optional: notebook demos
+jupyter>=1.0
